@@ -113,6 +113,55 @@ function simulateDomainScan(domain) {
   };
 }
 
+function simulateKeywordSearch(keyword) {
+  const tlds = ['.com', '.net', '.site', '.xyz', '.online', '.info', '.biz'];
+  const realDomain = keyword.toLowerCase() + '.com';
+  
+  const fakes = [
+    keyword + '-login.com',
+    keyword + '-support.net',
+    keyword.replace('o', '0') + '.com',
+    keyword.replace('i', '1') + '.site',
+    keyword.replace('l', 'I') + '.xyz',
+    'secure-' + keyword + '.com',
+    'www-' + keyword + '.com',
+    keyword + 'official.net'
+  ].filter(d => d && d !== realDomain && d !== keyword+'.com');
+
+  const discovered = [];
+  
+  // Real Legitimate Domain
+  discovered.push({
+    domain: realDomain,
+    status: 'Active',
+    ip: `104.21.${randomBetween(10, 200)}.${randomBetween(1, 250)}`,
+    risk: randomBetween(2, 10),
+    type: 'Legitimate',
+    indicators: ['Official SSL', 'Old Domain (10+ yrs)', 'Reputable ASN']
+  });
+
+  // Fake Domains
+  const numFakes = randomBetween(2, 5);
+  for(let i=0; i<numFakes; i++) {
+    const fake = fakes[i % fakes.length];
+    const isHighRisk = i % 2 === 0;
+    
+    discovered.push({
+      domain: fake,
+      status: 'Active',
+      ip: `185.220.${randomBetween(10,100)}.${randomBetween(1,250)}`,
+      risk: isHighRisk ? randomBetween(80, 95) : randomBetween(40, 65),
+      type: isHighRisk ? 'Phishing / Fake' : 'Suspicious',
+      indicators: ['Typosquatting', 'New Registration (< 30d)', 'No Extended Validation SSL']
+    });
+  }
+
+  return {
+    keyword,
+    domains: discovered.sort((a,b) => b.risk - a.risk)
+  };
+}
+
 function simulateIPScan(ip) {
   const isTor = ip.startsWith('185.220') || ip.startsWith('199.87');
   const score = isTor ? randomBetween(70,90) : randomBetween(5,30);
@@ -654,30 +703,87 @@ function DomainIntelPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [keywordResults, setKeywordResults] = useState(null);
   const [tab, setTab] = useState('whois');
 
   async function runScan() {
     if (!input.trim()) return;
-    setLoading(true); setResult(null);
+    setLoading(true); setResult(null); setKeywordResults(null);
     await sleep(1800);
-    const r = simulateDomainScan(input.trim().replace(/^https?:\/\//, '').split('/')[0]);
-    setResult(r);
+    
+    // Auto-detect if it's a domain or keyword
+    const val = input.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+    if (val.includes('.')) {
+      // Regular domain scan
+      const r = simulateDomainScan(val);
+      setResult(r);
+      showToast(`Domain analysis complete — Risk: ${r.risk}/100`, r.risk > 60 ? 'warning' : 'success');
+    } else {
+      // Keyword phishing/typosquatting search
+      const r = simulateKeywordSearch(val);
+      setKeywordResults(r);
+      const fakeCount = r.domains.filter(d => d.risk > 60).length;
+      showToast(`Keyword search complete. Found ${fakeCount} potential fake websites.`, fakeCount > 0 ? 'error' : 'success');
+    }
     setLoading(false);
-    showToast(`Domain analysis complete — Risk: ${r.risk}/100`, r.risk > 60 ? 'warning' : 'success');
   }
 
   return React.createElement('div', { className: 'page-content fade-in' },
     React.createElement('div', { className: 'card', style: { marginBottom: 16 } },
       React.createElement('div', { className: 'card-title', style: { marginBottom: 14 } }, '🌐 Domain & Website Intelligence'),
-      React.createElement('div', { className: 'input-with-btn' },
-        React.createElement('input', { className: 'input-field', placeholder: 'Enter domain (e.g., example.com, suspicious-site.xyz)', value: input, onChange: e => setInput(e.target.value), onKeyDown: e => e.key === 'Enter' && runScan() }),
+      React.createElement('div', { className: 'alert alert-info' }, 'ℹ️ Advanced mode: Enter a brand keyword (e.g. "paypal") to hunt for typosquatting & fake websites, or enter a full domain for detailed intel.'),
+      React.createElement('div', { className: 'input-with-btn', style: { marginTop: 12 } },
+        React.createElement('input', { className: 'input-field', placeholder: 'Enter domain (example.com) or brand keyword (paypal)', value: input, onChange: e => setInput(e.target.value), onKeyDown: e => e.key === 'Enter' && runScan() }),
         React.createElement('button', { className: 'btn btn-primary', onClick: runScan, disabled: loading || !input.trim() },
           loading ? React.createElement(Spinner) : '🌐', loading ? ' Analyzing...' : ' Analyze'
         )
       ),
       loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: 'var(--text-muted)' } },
         React.createElement(Spinner, { large: true }),
-        React.createElement('div', { style: { marginTop: 12 } }, 'Performing WHOIS, DNS, and subdomain enumeration...')
+        React.createElement('div', { style: { marginTop: 12 } }, input.includes('.') ? 'Performing WHOIS, DNS, and subdomain enumeration...' : 'Discovering typosquatting and fake domains...')
+      )
+    ),
+
+    keywordResults && React.createElement('div', { className: 'result-section' },
+      React.createElement('div', { className: 'card glow-cyan', style: { marginBottom: 16 } },
+         React.createElement('div', { className: 'card-title', style: { marginBottom: 14 } }, `🕵️ Fake Website Detection for: "${keywordResults.keyword}"`),
+         React.createElement('p', { style: { fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 } }, 'Found multiple registered domains that mimic your keyword. These may be used for phishing attacks.'),
+         React.createElement('div', { className: 'table-wrap' },
+           React.createElement('table', null,
+             React.createElement('thead', null,
+                React.createElement('tr', null,
+                  React.createElement('th', null, 'Domain'),
+                  React.createElement('th', null, 'Target IP'),
+                  React.createElement('th', null, 'Risk Score'),
+                  React.createElement('th', null, 'Indicators')
+                )
+             ),
+             React.createElement('tbody', null,
+               keywordResults.domains.map((d, i) =>
+                 React.createElement('tr', { key: i },
+                   React.createElement('td', null, 
+                     React.createElement('div', { className: 'mono', style: { fontWeight: d.risk > 70 ? 'bold' : 'normal', color: d.risk > 70 ? 'var(--text-primary)' : 'var(--text-secondary)' } }, d.domain),
+                     React.createElement('span', { className: d.risk > 70 ? 'tag tag-red' : d.risk > 40 ? 'tag tag-yellow' : 'tag tag-green', style: { marginTop: 4, display: 'inline-block' } }, d.type)
+                   ),
+                   React.createElement('td', { className: 'mono', style: { fontSize: 12 } }, d.ip),
+                   React.createElement('td', null,
+                     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+                       React.createElement('div', { className: 'progress-bar-wrap', style: { width: 50 } },
+                         React.createElement('div', { className: 'progress-bar', style: { width: d.risk+'%', background: riskColor(d.risk) } })
+                       ),
+                       React.createElement('span', { style: { fontSize: 12, color: riskColor(d.risk) } }, d.risk)
+                     )
+                   ),
+                   React.createElement('td', null,
+                     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '4px' } },
+                       d.indicators.map(ind => React.createElement('span', { key: ind, className: 'tag' }, ind))
+                     )
+                   )
+                 )
+               )
+             )
+           )
+         )
       )
     ),
 
@@ -769,7 +875,7 @@ function DomainIntelPage() {
       )
     ),
 
-    !result && !loading && React.createElement(EmptyState, { icon: '🌐', title: 'No Domain Analyzed', desc: 'Enter a domain name to begin WHOIS, DNS, and subdomain analysis' })
+    !result && !keywordResults && !loading && React.createElement(EmptyState, { icon: '🌐', title: 'No Scan Active', desc: 'Enter a domain or a brand keyword above to begin intelligence gathering.' })
   );
 }
 
