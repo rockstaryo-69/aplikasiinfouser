@@ -1,0 +1,37 @@
+{
+  "name": "cyberscope-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CyberScope OSINT Platform — React Frontend",
+  "type": "module",
+  "scripts": {
+    "dev":     "vite --port 5173",
+    "build":   "vite build",
+    "preview": "vite preview",
+    "lint":    "eslint src --ext js,jsx"
+  },
+  "dependencies": {
+    "react":          "^18.3.1",
+    "react-dom":      "^18.3.1",
+    "react-router-dom": "^6.22.0",
+    "zustand":        "^4.5.2",
+    "cytoscape":      "^3.28.1",
+    "chart.js":       "^4.4.0",
+    "react-chartjs-2":"^5.2.0",
+    "d3":             "^7.9.0",
+    "axios":          "^1.6.7",
+    "react-hot-toast":"^2.4.1",
+    "date-fns":       "^3.3.1",
+    "jspdf":          "^2.5.1",
+    "file-saver":     "^2.0.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite":                 "^5.1.4",
+    "tailwindcss":          "^3.4.1",
+    "autoprefixer":         "^10.4.18",
+    "postcss":              "^8.4.35",
+    "eslint":               "^8.57.0",
+    "eslint-plugin-react":  "^7.34.0"
+  }
+}

@@ -1,0 +1,18 @@
+# Worker Dockerfile (separate process for scan jobs)
+FROM node:20-alpine
+
+RUN apk add --no-cache chromium nmap nmap-scripts ca-certificates && rm -rf /var/cache/apk/*
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+
+RUN addgroup -g 1001 -S cyberscope && \
+    adduser -S -u 1001 -G cyberscope cyberscope && \
+    mkdir -p logs && chown -R cyberscope:cyberscope /app
+USER cyberscope
+
+CMD ["node", "src/workers/scanWorker.js"]

@@ -1,0 +1,59 @@
+# ─── Node ─────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+.yarn/
+
+# ─── Environment ──────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ─── Build outputs ────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# ─── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ─── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE ──────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── Docker ───────────────────────────────────────────────────
+.docker/
+docker-compose.override.yml
+
+# ─── Reports / Exports ────────────────────────────────────────
+exports/
+reports/
+screenshots/
+*.pdf
+
+# ─── Secrets ──────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+api_keys.txt
+secrets/
+
+# ─── Cache ────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
